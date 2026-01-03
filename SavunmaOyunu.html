@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Defense</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 100%);
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #gameContainer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        #canvas {
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0a 100%);
+            display: block;
+            margin: 20px auto 0 auto;
+            box-shadow: 0 0 50px rgba(138, 43, 226, 0.3);
+        }
+
+        #ui {
+            background: linear-gradient(180deg, #16213e 0%, #0f1624 100%);
+            padding: 15px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            min-width: 100px;
+            text-align: center;
+        }
+
+		.upgrades {
+			display: grid;
+			/* 4 butonu tek satıra zorlar ve hepsini eşit genişlikte yapar */
+			grid-template-columns: repeat(4, 1fr); 
+			gap: 8px; /* Butonlar arasındaki boşluk */
+			margin-bottom: 15px;
+			width: 100%; /* Dış boşluk kalmaması için tam genişlik */
+		}
+
+		.upgrade-btn {
+			background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+			border: 2px solid #34d399;
+			color: white;
+			/* Daraltmak için padding'i 12px'den 10px 5px'e düşürdük */
+			padding: 10px 5px; 
+			border-radius: 12px;
+			cursor: pointer;
+			font-weight: bold;
+			font-size: 12px; /* Sığması için yazıyı 1 tık küçülttük */
+			transition: all 0.3s;
+			box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+			text-align: center;
+			width: 100%; /* Izgara hücresini tamamen doldurur */
+			box-sizing: border-box; /* Kenarlıkların genişliği bozmasını engeller */
+		}
+
+        .upgrade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+        }
+
+        .upgrade-btn:active {
+            transform: translateY(0);
+        }
+
+        .upgrade-btn:disabled {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            border-color: #6b7280;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: 2px solid #f87171;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .control-btn.pause {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-color: #fbbf24;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid #8b5cf6;
+            box-shadow: 0 10px 50px rgba(139, 92, 246, 0.5);
+            max-width: 90%;
+        }
+
+        .modal h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+        }
+
+        .modal button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .upgrade-info {
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .stat {
+                font-size: 12px;
+                padding: 6px 10px;
+                min-width: 80px;
+            }
+
+            .upgrade-btn {
+                font-size: 12px;
+                padding: 10px;
+            }
+
+            .control-btn {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+        }
+
+        .damage-flash {
+            animation: flash 0.3s;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas"></canvas>
+        <div id="ui">
+            <div class="stats">
+                <div class="stat">💰 Coins: <span id="coins">0</span></div>
+                <div class="stat">❤️ HP: <span id="hp">100</span>/<span id="maxHp">100</span></div>
+                <div class="stat">🌊 Wave: <span id="wave">1</span></div>
+                <div class="stat">👾 Enemies: <span id="enemies">0</span></div>
+            </div>
+            <div class="upgrades">
+                <button class="upgrade-btn" id="upgradeSpeed">
+                    ⚡ Attack Speed<br>
+                    <div class="upgrade-info">Lv.<span id="speedLvl">1</span> | Cost: <span id="speedCost">10</span></div>
+                </button>
+                <button class="upgrade-btn" id="upgradeDamage">
+                    💥 Damage<br>
+                    <div class="upgrade-info">Lv.<span id="damageLvl">1</span> | Cost: <span id="damageCost">10</span></div>
+                </button>
+                <button class="upgrade-btn" id="upgradeHP">
+                    💚 Max HP<br>
+                    <div class="upgrade-info">Lv.<span id="hpLvl">1</span> | Cost: <span id="hpCost">15</span></div>
+                </button>
+                <button class="upgrade-btn" id="upgradeProjectile">
+                    🚀 Projectile Speed<br>
+                    <div class="upgrade-info">Lv.<span id="projLvl">1</span> | Cost: <span id="projCost">10</span></div>
+                </button>
+            </div>
+            <div class="controls">
+                <button class="control-btn pause" id="pauseBtn">⏸️ Pause</button>
+                <button class="control-btn" id="restartBtn">🔄 Restart</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay">
+        <div class="modal">
+            <h2 id="modalTitle">Game Over</h2>
+            <p id="modalText"></p>
+            <button id="modalBtn">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Oyun durumu
+        let game = null;
+        
+        function initGame() {
+            return {
+                player: {
+                    x: canvas.width / 2,
+                    y: canvas.height - 50,
+                    radius: 20,
+                    hp: 100,
+                    maxHp: 100,
+                    attackSpeed: 2,
+                    attackDamage: 10,
+                    projectileSpeed: 5,
+                    lastShot: 0
+                },
+                coins: 0,
+                wave: 1,
+                enemies: [],
+                projectiles: [],
+                particles: [],
+                paused: false,
+                gameOver: false,
+                waveInProgress: false,
+                enemiesThisWave: 0,
+                enemiesKilled: 0,
+                enemiesSpawned: 0,
+                upgrades: {
+                    speed: { level: 1, cost: 10, multiplier: 0.15 },
+                    damage: { level: 1, cost: 10, multiplier: 5 },
+                    hp: { level: 1, cost: 15, multiplier: 20 },
+                    projectile: { level: 1, cost: 10, multiplier: 0.5 }
+                }
+            };
+        }
+        
+        function resizeCanvas() {
+            const maxWidth = window.innerWidth;
+            const maxHeight = window.innerHeight - document.getElementById('ui').offsetHeight - 40;
+            const size = Math.min(maxWidth, maxHeight, 600);
+            canvas.width = size;
+            canvas.height = size;
+            
+            if (game) {
+                game.player.x = canvas.width / 2;
+                game.player.y = canvas.height - 50;
+            }
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Enemy {
+            constructor(isBoss = false) {
+                this.isBoss = isBoss;
+                this.radius = isBoss ? 30 : 15;
+                this.hp = isBoss ? 100 + game.wave * 50 : 20 + game.wave * 5;
+                this.maxHp = this.hp;
+                this.speed = isBoss ? 0.5 : 1 + game.wave * 0.05;
+                this.value = isBoss ? 50 + game.wave * 10 : 5 + game.wave;
+                
+                const xPos = Math.random() * canvas.width;
+                this.x = xPos;
+                this.y = -50;
+                this.color = isBoss ? '#ff0080' : '#00ffff';
+            }
+
+            update() {
+                const dx = game.player.x - this.x;
+                const dy = game.player.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > game.player.radius + this.radius) {
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
+                } else {
+                    game.player.hp -= this.isBoss ? 2 : 1;
+                    updateUI();
+                    flashDamage();
+                    return false;
+                }
+                return true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (this.isBoss) {
+                    ctx.strokeStyle = '#ff00ff';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+                
+                const hpPercent = this.hp / this.maxHp;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(this.x - this.radius, this.y - this.radius - 10, this.radius * 2, 4);
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(this.x - this.radius, this.y - this.radius - 10, this.radius * 2 * hpPercent, 4);
+                
+                ctx.restore();
+            }
+        }
+
+        class Projectile {
+            constructor(targetX, targetY) {
+                this.x = game.player.x;
+                this.y = game.player.y;
+                const angle = Math.atan2(targetY - this.y, targetX - this.x);
+                this.vx = Math.cos(angle) * game.player.projectileSpeed;
+                this.vy = Math.sin(angle) * game.player.projectileSpeed;
+                this.radius = 5;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    return false;
+                }
+                
+                for (let i = game.enemies.length - 1; i >= 0; i--) {
+                    const enemy = game.enemies[i];
+                    const dx = enemy.x - this.x;
+                    const dy = enemy.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < enemy.radius + this.radius) {
+                        enemy.hp -= game.player.attackDamage;
+                        if (enemy.hp <= 0) {
+                            game.coins += enemy.value;
+                            createParticles(enemy.x, enemy.y, enemy.color);
+                            game.enemies.splice(i, 1);
+                            game.enemiesKilled++;
+                        }
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#ffff00';
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.radius = Math.random() * 3 + 2;
+                this.color = color;
+                this.life = 1;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.02;
+                return this.life > 0;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                game.particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function flashDamage() {
+            canvas.classList.add('damage-flash');
+            setTimeout(() => canvas.classList.remove('damage-flash'), 300);
+        }
+
+        function startWave() {
+            game.waveInProgress = true;
+            game.enemiesKilled = 0;
+            game.enemiesSpawned = 0;
+            const isBossWave = game.wave % 5 === 0;
+            
+            if (isBossWave) {
+                game.enemiesThisWave = 1;
+                game.enemies.push(new Enemy(true));
+                game.enemiesSpawned = 1;
+                showModal('BOSS WAVE!', `Wave ${game.wave} - Boss Incoming!`, false);
+            } else {
+                game.enemiesThisWave = 5 + game.wave * 2;
+                const spawnInterval = setInterval(() => {
+                    if (game.enemiesSpawned < game.enemiesThisWave && !game.paused && !game.gameOver) {
+                        game.enemies.push(new Enemy(false));
+                        game.enemiesSpawned++;
+                    }
+                    if (game.enemiesSpawned >= game.enemiesThisWave) {
+                        clearInterval(spawnInterval);
+                    }
+                }, 1000);
+            }
+        }
+
+        function shoot() {
+            if (game.enemies.length === 0) return;
+            
+            let closest = game.enemies[0];
+            let minDist = Infinity;
+            
+            game.enemies.forEach(enemy => {
+                const dx = enemy.x - game.player.x;
+                const dy = enemy.y - game.player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = enemy;
+                }
+            });
+            
+            game.projectiles.push(new Projectile(closest.x, closest.y));
+        }
+
+        function update(timestamp) {
+            if (game.paused || game.gameOver) return;
+            
+            if (timestamp - game.player.lastShot > 1000 / game.player.attackSpeed) {
+                shoot();
+                game.player.lastShot = timestamp;
+            }
+            
+            game.enemies = game.enemies.filter(enemy => enemy.update());
+            game.projectiles = game.projectiles.filter(proj => proj.update());
+            game.particles = game.particles.filter(particle => particle.update());
+            
+            if (game.waveInProgress && game.enemies.length === 0 && game.enemiesKilled >= game.enemiesThisWave) {
+                game.wave++;
+                game.waveInProgress = false;
+                setTimeout(() => startWave(), 2000);
+            }
+            
+            if (game.player.hp <= 0) {
+                game.gameOver = true;
+                showModal('GAME OVER', `You reached Wave ${game.wave}!`, true);
+            }
+            
+            updateUI();
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = '#8b5cf6';
+            ctx.fillStyle = '#8b5cf6';
+            ctx.beginPath();
+            ctx.arc(game.player.x, game.player.y, game.player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#a78bfa';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+            
+            game.particles.forEach(p => p.draw());
+            game.enemies.forEach(e => e.draw());
+            game.projectiles.forEach(p => p.draw());
+        }
+
+        function gameLoop(timestamp) {
+            update(timestamp);
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            document.getElementById('coins').textContent = Math.floor(game.coins);
+            document.getElementById('hp').textContent = Math.max(0, Math.floor(game.player.hp));
+            document.getElementById('maxHp').textContent = game.player.maxHp;
+            document.getElementById('wave').textContent = game.wave;
+            document.getElementById('enemies').textContent = game.enemiesThisWave - game.enemiesKilled + '/' + game.enemiesThisWave;
+            
+            updateUpgradeButtons();
+        }
+
+        function updateUpgradeButtons() {
+            const upgrades = [
+                { type: 'speed', btnId: 'upgradeSpeed', costId: 'speedCost', lvlId: 'speedLvl' },
+                { type: 'damage', btnId: 'upgradeDamage', costId: 'damageCost', lvlId: 'damageLvl' },
+                { type: 'hp', btnId: 'upgradeHP', costId: 'hpCost', lvlId: 'hpLvl' },
+                { type: 'projectile', btnId: 'upgradeProjectile', costId: 'projCost', lvlId: 'projLvl' }
+            ];
+            
+            upgrades.forEach(({ type, btnId, costId, lvlId }) => {
+                const upgrade = game.upgrades[type];
+                const btn = document.getElementById(btnId);
+                const costSpan = document.getElementById(costId);
+                const lvlSpan = document.getElementById(lvlId);
+                
+                lvlSpan.textContent = upgrade.level;
+                costSpan.textContent = upgrade.cost;
+                btn.disabled = game.coins < upgrade.cost;
+            });
+        }
+
+        function upgradeStats(type) {
+            const upgrade = game.upgrades[type];
+            if (game.coins < upgrade.cost) return;
+            
+            game.coins -= upgrade.cost;
+            upgrade.level++;
+            upgrade.cost = Math.floor(upgrade.cost * 1.5);
+            
+            switch(type) {
+                case 'speed':
+                    game.player.attackSpeed += upgrade.multiplier;
+                    break;
+                case 'damage':
+                    game.player.attackDamage += upgrade.multiplier;
+                    break;
+                case 'hp':
+                    game.player.maxHp += upgrade.multiplier;
+                    game.player.hp = Math.min(game.player.hp + upgrade.multiplier, game.player.maxHp);
+                    break;
+                case 'projectile':
+                    game.player.projectileSpeed += upgrade.multiplier;
+                    break;
+            }
+            
+            updateUI();
+        }
+
+        function showModal(title, text, isGameOver) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            document.getElementById('modalBtn').textContent = isGameOver ? 'Restart' : 'Continue';
+            document.getElementById('overlay').style.display = 'flex';
+            game.paused = true;
+        }
+
+        function hideModal() {
+            document.getElementById('overlay').style.display = 'none';
+            if (game.gameOver) {
+                restartGame();
+            } else {
+                game.paused = false;
+            }
+        }
+
+        function restartGame() {
+            game.player.hp = 100;
+            game.player.maxHp = 100;
+            game.player.attackSpeed = 1;
+            game.player.attackDamage = 10;
+            game.player.projectileSpeed = 5;
+            game.coins = 0;
+            game.wave = 1;
+            game.enemies = [];
+            game.projectiles = [];
+            game.particles = [];
+            game.gameOver = false;
+            game.paused = false;
+            game.waveInProgress = false;
+            
+            Object.keys(game.upgrades).forEach(key => {
+                game.upgrades[key].level = 1;
+                game.upgrades[key].cost = key === 'hp' ? 15 : 10;
+            });
+            
+            updateUI();
+            startWave();
+        }
+
+        // Event Listeners
+        document.getElementById('upgradeSpeed').addEventListener('click', () => upgradeStats('speed'));
+        document.getElementById('upgradeDamage').addEventListener('click', () => upgradeStats('damage'));
+        document.getElementById('upgradeHP').addEventListener('click', () => upgradeStats('hp'));
+        document.getElementById('upgradeProjectile').addEventListener('click', () => upgradeStats('projectile'));
+        
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            game.paused = !game.paused;
+            document.getElementById('pauseBtn').textContent = game.paused ? '▶️ Resume' : '⏸️ Pause';
+        });
+        
+        document.getElementById('restartBtn').addEventListener('click', restartGame);
+        document.getElementById('modalBtn').addEventListener('click', hideModal);
+
+        // Oyunu başlat
+        game = initGame();
+        startWave();
+        updateUI();
+        gameLoop(0);
+    </script>
+</body>
+</html>
