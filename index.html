@@ -229,8 +229,8 @@
                     x: canvas.width / 2,
                     y: canvas.height - 50,
                     radius: 20,
-                    hp: 5,
-                    maxHp: 5,
+                    hp: 10,
+                    maxHp: 10,
                     attackSpeed: 1.5,
                     attackDamage: 15,
                     projectileSpeed: 5,
@@ -247,9 +247,9 @@
                 enemiesThisWave: 0,
                 enemiesKilled: 0,
                 upgrades: {
-                    speed: { level: 1, cost: 10, multiplier: 0.15 },
-                    damage: { level: 1, cost: 10, multiplier: 5 },
-                    hp: { level: 1, cost: 15, multiplier: 20 },
+                    speed: { level: 1, cost: 10, multiplier: 0.1 },
+                    damage: { level: 1, cost: 10, multiplier: 1 },
+                    hp: { level: 1, cost: 10, multiplier: 1 },
                     projectile: { level: 1, cost: 10, multiplier: 0.5 }
                 }
             };
@@ -478,7 +478,7 @@
             if (game.coins < up.cost) return;
             game.coins -= up.cost;
             up.level++;
-            up.cost = Math.floor(up.cost * 1.5);
+            up.cost = Math.floor(up.cost * 1.2);
             if (type === 'speed') game.player.attackSpeed += up.multiplier;
             else if (type === 'damage') game.player.attackDamage += up.multiplier;
             else if (type === 'hp') {
@@ -532,4 +532,3 @@
     </script>
 </body>
 </html>
-
